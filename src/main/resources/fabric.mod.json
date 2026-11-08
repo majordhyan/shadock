@@ -9,8 +9,8 @@
 	],
 	"contact": {
 		"homepage": "https://www.curseforge.com/minecraft/mc-mods/shadock",
-		"sources": "https://github.com/whynotdhyan/shadock",
-		"issues": "https://github.com/whynotdhyan/shadock/issues"
+		"sources": "https://github.com/majordhyan/shadock",
+		"issues": "https://github.com/majordhyan/shadock/issues"
 	},
 	"license": "MIT",
 	"icon": "assets/shadock/icon.png",
