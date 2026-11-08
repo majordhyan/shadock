@@ -13,7 +13,7 @@ import java.nio.file.Path;
 public record ShaderPack(String fileName, String displayName, Path path, Type type, Validity validity) {
 	public enum Type { ZIP, FOLDER }
 
-	public enum Validity { VALID, INVALID, UNKNOWN }
+	public enum Validity { VALID, INVALID }
 
 	public static ShaderPack of(Path path, Type type, Validity validity) {
 		String fileName = path.getFileName().toString();

@@ -37,9 +37,6 @@ public interface IrisCompat {
 	/** Turns shaders off, which also makes Iris release the active ZIP file. */
 	boolean disableShaders();
 
-	/** Reloads the current selection. */
-	boolean reloadShaders();
-
 	/** Iris's message for the last failure, if any. */
 	Optional<String> getLastError();
 }

@@ -12,8 +12,7 @@ public record ShaderImportResult(Status status, String fileName, @Nullable Strin
 		DUPLICATE,
 		/** The chosen file already is the pack in the shaderpacks folder. */
 		ALREADY_PRESENT,
-		FAILED,
-		CANCELLED
+		FAILED
 	}
 
 	public static ShaderImportResult of(Status status, String fileName) {

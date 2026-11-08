@@ -8,8 +8,6 @@ public final class DockAnimations {
 	public static final float ROW_TAU_MS = 28f;
 	/** Time constant for smooth scrolling. */
 	public static final float SCROLL_TAU_MS = 40f;
-	/** Horizontal distance the dock slides in from. */
-	public static final float SLIDE_PX = 14f;
 
 	private DockAnimations() {
 	}

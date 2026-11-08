@@ -31,7 +31,6 @@ class ShaderPackScannerTest {
 		@Override public Optional<String> getActiveShaderPackName() { return Optional.empty(); }
 		@Override public boolean setActiveShaderPack(String packName) { return false; }
 		@Override public boolean disableShaders() { return false; }
-		@Override public boolean reloadShaders() { return false; }
 		@Override public Optional<String> getLastError() { return Optional.empty(); }
 	}
 

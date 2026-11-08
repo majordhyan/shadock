@@ -85,11 +85,6 @@ public final class IrisCompatFactory {
 		}
 
 		@Override
-		public boolean reloadShaders() {
-			return false;
-		}
-
-		@Override
 		public Optional<String> getLastError() {
 			return Optional.empty();
 		}

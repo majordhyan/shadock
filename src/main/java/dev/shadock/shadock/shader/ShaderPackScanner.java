@@ -59,10 +59,6 @@ public final class ShaderPackScanner {
 		return generation;
 	}
 
-	public boolean isDirty() {
-		return dirty.get();
-	}
-
 	/**
 	 * Called when the dock opens. With a working folder watcher this only scans if something changed;
 	 * without one (unsupported file system, or the folder was deleted) it rescans so the list is never stale.

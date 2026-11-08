@@ -14,7 +14,6 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.Minecraft;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -169,10 +168,5 @@ public final class ShadockClientGameTest implements FabricClientGameTest {
 		if (!condition) {
 			throw new AssertionError("Check failed: " + what);
 		}
-	}
-
-	@SuppressWarnings("unused")
-	private static Minecraft mc() {
-		return Minecraft.getInstance();
 	}
 }

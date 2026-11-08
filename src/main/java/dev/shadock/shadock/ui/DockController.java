@@ -100,20 +100,12 @@ public final class DockController {
 		return scanner.state();
 	}
 
-	public boolean irisAvailable() {
-		return iris.isAvailable();
-	}
-
 	public Optional<String> activePackName() {
 		return iris.getActiveShaderPackName();
 	}
 
 	public boolean isSwitching() {
 		return switching;
-	}
-
-	public boolean isFilePickerOpen() {
-		return filePickerOpen;
 	}
 
 	/** True while anything is in progress that must not be interrupted (auto-hide, drag, clicks). */
@@ -143,10 +135,6 @@ public final class DockController {
 			rows = ShaderPackOrderStore.sort(packs, config.customPackOrder, config.sortMode);
 		}
 		return rows;
-	}
-
-	public void invalidateRows() {
-		rowsDirty = true;
 	}
 
 	public void setStatus(DockStatus status) {
@@ -258,7 +246,6 @@ public final class DockController {
 			}
 			case INVALID -> status = DockStatus.of(DockStatus.Kind.ERROR, "shadock.status.not_a_shader_pack");
 			case FAILED -> status = DockStatus.of(DockStatus.Kind.ERROR, "shadock.status.import_failed");
-			case CANCELLED -> status = DockStatus.of(DockStatus.Kind.INFO, "shadock.status.import_cancelled");
 			case DUPLICATE -> onDuplicate(source, result.fileName());
 			case ALREADY_PRESENT -> status = DockStatus.of(DockStatus.Kind.INFO, "shadock.status.already_installed", result.fileName());
 		}

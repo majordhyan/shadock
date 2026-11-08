@@ -145,23 +145,6 @@ public final class Iris_1_11_7_26_3_Compat implements IrisCompat {
 	}
 
 	@Override
-	public boolean reloadShaders() {
-		try {
-			IrisErrorCapture.clear();
-			Iris.reload();
-			Exception captured = IrisErrorCapture.take();
-			if (captured != null) {
-				lastError = describe(captured);
-				return false;
-			}
-			return true;
-		} catch (IOException | RuntimeException e) {
-			lastError = describe(e);
-			return false;
-		}
-	}
-
-	@Override
 	public Optional<String> getLastError() {
 		return Optional.ofNullable(lastError);
 	}
