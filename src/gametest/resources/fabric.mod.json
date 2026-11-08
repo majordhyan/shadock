@@ -1,0 +1,17 @@
+{
+	"schemaVersion": 1,
+	"id": "shadock-gametest",
+	"version": "1.0.0",
+	"name": "Shadock Game Tests",
+	"description": "Automated in-game checks and release screenshots for Shadock. Not shipped.",
+	"license": "MIT",
+	"environment": "client",
+	"entrypoints": {
+		"fabric-client-gametest": [
+			"dev.shadock.shadock.gametest.ShadockClientGameTest"
+		]
+	},
+	"depends": {
+		"shadock": "*"
+	}
+}

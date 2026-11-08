@@ -1,0 +1,14 @@
+{
+	"required": true,
+	"package": "dev.shadock.shadock.iris.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"client": [
+		"IrisErrorCaptureMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}

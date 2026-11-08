@@ -1,0 +1,35 @@
+# gradle
+.gradle/
+build/
+out/
+classes/
+
+# ide
+.idea/*
+!.idea/runConfigurations/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.classpath
+.project
+bin/
+
+# dev runs and logs
+run/
+logs/
+*.log
+
+# release builds (jars and screenshots get attached to releases, not committed)
+release/
+
+# os
+.DS_Store
+Thumbs.db
+
+# jvm crash dumps
+hs_err_*.log
+replay_*.log
+*.hprof
+*.jfr

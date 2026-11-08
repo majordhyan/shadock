@@ -1,0 +1,95 @@
+plugins {
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+	archivesName = project.archives_base_name
+}
+
+repositories {
+	exclusiveContent {
+		forRepository {
+			maven {
+				name = 'Modrinth'
+				url = 'https://api.modrinth.com/maven'
+			}
+		}
+		filter {
+			includeGroup 'maven.modrinth'
+		}
+	}
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+	// Iris is required at runtime; Sodium is required by Iris.
+	implementation "maven.modrinth:iris:${project.iris_version}"
+	implementation "maven.modrinth:sodium:${project.sodium_version}"
+
+	testImplementation platform('org.junit:junit-bom:5.13.4')
+	testImplementation 'org.junit.jupiter:junit-jupiter'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+// Client game tests: an automated in-game run that also captures the release screenshots.
+// Run with: gradlew runClientGameTest   (screenshots land in build/run/clientGameTest/shadock-screenshots)
+fabricApi {
+	configureTests {
+		createSourceSet = true
+		modId = 'shadock-gametest'
+		enableGameTests = false
+		enableClientGameTests = true
+		eula = true
+	}
+}
+
+// The game test applies real shader packs, so copy the ones from the dev run folder into the test run.
+def copyTestShaderpacks = tasks.register('copyTestShaderpacks', Copy) {
+	from('run/shaderpacks') {
+		include '*.zip'
+		exclude 'Broken*'
+	}
+	into layout.buildDirectory.dir('run/clientGameTest/shaderpacks')
+}
+tasks.matching { it.name == 'runClientGameTest' }.configureEach {
+	dependsOn copyTestShaderpacks
+}
+
+processResources {
+	def props = [version: project.version, iris_version: project.iris_version, loader_version: project.loader_version]
+	inputs.properties props
+	filesMatching('fabric.mod.json') {
+		expand props
+	}
+}
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(25)
+	}
+	withSourcesJar()
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 25
+	it.options.encoding = 'UTF-8'
+	it.options.compilerArgs += ['-Xlint:all', '-Xlint:-processing', '-Xlint:-serial', '-Xlint:-classfile']
+}
+
+test {
+	useJUnitPlatform()
+}
+
+jar {
+	def projectName = project.base.archivesName.get()
+	inputs.property 'projectName', projectName
+	from('LICENSE') {
+		rename { "${it}_${projectName}" }
+	}
+}
