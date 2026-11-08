@@ -8,7 +8,6 @@ public final class TextUtils {
 	private TextUtils() {
 	}
 
-	/** Truncates {@code text} to {@code maxWidth} pixels, adding an ellipsis when cut. */
 	public static String ellipsize(Font font, String text, int maxWidth) {
 		if (font.width(text) <= maxWidth) {
 			return text;

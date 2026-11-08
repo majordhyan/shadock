@@ -1,9 +1,5 @@
 package dev.shadock.shadock.ui;
 
-/**
- * Vanilla Minecraft GUI colors (the ChatFormatting palette and the selection-list colors),
- * so the dock looks like part of the game.
- */
 public final class DockColors {
 	public static final int WHITE = 0xFFFFFFFF;
 	public static final int GRAY = 0xFFAAAAAA;
@@ -13,7 +9,7 @@ public final class DockColors {
 	public static final int RED = 0xFFFF5555;
 	public static final int AQUA = 0xFF55FFFF;
 
-	/** Vanilla selection outline (focused) and its black fill, from AbstractSelectionList. */
+	// same values AbstractSelectionList uses
 	public static final int SELECTION_OUTLINE = 0xFFFFFFFF;
 	public static final int SELECTION_OUTLINE_UNFOCUSED = 0xFF808080;
 	public static final int SELECTION_FILL = 0xFF000000;

@@ -1,24 +1,9 @@
 package dev.shadock.shadock.ui;
 
-/**
- * Computes the dock rectangle and its regions. Fixed to the bottom-left in v1.
- *
- * <pre>
- * ┌ popup frame ─────────────────────┐
- * │ [logo] Shadock   7 packs     [x] │  header
- * │──────────────────────────────────│  vanilla separator
- * │ ▣ BSL v10.1.8                  ✔ │  list (12 px rows)
- * │ ▣ Photon v1.4                    │
- * │──────────────────────────────────│
- * │ Ready                            │  status
- * │ [+][📁][⇅][🔑][⚙]                │  toolbar (vanilla stone buttons)
- * └──────────────────────────────────┘
- * </pre>
- */
+// bottom-left only for now. Header, list, status line, toolbar, top to bottom inside the frame.
 public final class DockLayoutManager {
 	public static final int MARGIN = 4;
 	public static final int PANEL_WIDTH = 168;
-	/** Inner padding inside the vanilla popup frame. */
 	public static final int INSET = 6;
 	public static final int HEADER_HEIGHT = 16;
 	public static final int ROW_HEIGHT = 12;
@@ -29,7 +14,6 @@ public final class DockLayoutManager {
 	public static final int CLOSE_SIZE = 14;
 	public static final int MAX_ROWS = 7;
 	public static final int SCROLLBAR_WIDTH = 6;
-	/** Narrowest the dock gets when making room for the hotbar. */
 	public static final int MIN_WIDTH = 136;
 	private static final int GAP_TO_HOTBAR = 4;
 	private static final int HOTBAR_HALF_WIDTH = 91;
@@ -52,7 +36,6 @@ public final class DockLayoutManager {
 	}
 
 	public record Layout(Rect panel, Rect header, Rect list, Rect status, Rect toolbar, Rect close, int visibleRows) {
-		/** Position of toolbar button {@code index} (0-based, left to right). */
 		public Rect toolbarButton(int index) {
 			return new Rect(toolbar.x() + index * (BUTTON_SIZE + BUTTON_GAP), toolbar.y(), BUTTON_SIZE, BUTTON_SIZE);
 		}

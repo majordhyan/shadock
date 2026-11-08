@@ -2,7 +2,6 @@ package dev.shadock.shadock.ui;
 
 import net.minecraft.network.chat.Component;
 
-/** One line of dock feedback. The idle status shows the active pack instead of a message. */
 public record DockStatus(Component text, Kind kind) {
 	public enum Kind { INFO, BUSY, SUCCESS, WARNING, ERROR }
 

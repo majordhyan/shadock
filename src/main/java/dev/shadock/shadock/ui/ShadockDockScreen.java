@@ -19,13 +19,10 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.util.Util;
 import org.jspecify.annotations.Nullable;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-/**
- * The shader dock: a small, non-pausing screen in the bottom-left, built from vanilla parts
- * (popup frame, stone buttons, selection list, separators, scrollbar) so it looks like part of the game.
- */
 public final class ShadockDockScreen extends Screen {
 	private final DockController controller;
 	private ShaderListWidget list;
@@ -42,7 +39,7 @@ public final class ShadockDockScreen extends Screen {
 
 	private final PromptOverlay promptOverlay = new PromptOverlay(this::addRenderableWidget, this::removeWidget);
 
-	/** Set while the slide-out animation plays; the screen closes for real when it ends. */
+	// != -1 while the slide-out plays; the screen only really closes when it finishes
 	private long closingAt = -1;
 
 	private long openedAt = -1;
@@ -95,8 +92,9 @@ public final class ShadockDockScreen extends Screen {
 	}
 
 	private void openFolder() {
-		var dir = controller.shaderpacksDirectory();
-		CompletableFuture.runAsync(() -> Blaze3D.openPath(dir));
+		Path packsDir = controller.shaderpacksDirectory();
+		// opening Explorer/Finder can stall for a second on some systems, keep it off the render thread
+		CompletableFuture.runAsync(() -> Blaze3D.openPath(packsDir));
 	}
 
 	@Override
@@ -108,8 +106,6 @@ public final class ShadockDockScreen extends Screen {
 	public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
 		// No dimming or blur: the dock is a small panel over the live world.
 	}
-
-	// ---- per-frame layout and rendering ---------------------------------------------------------------
 
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
@@ -228,8 +224,6 @@ public final class ShadockDockScreen extends Screen {
 		}
 	}
 
-	// ---- auto-hide -------------------------------------------------------------------------------
-
 	private void updateAutoHide(long now, int mouseX, int mouseY) {
 		int delay = controller.config().autoHideDelaySeconds;
 		// A new message restarts the timer, so an error or result is never hidden before it can be read.
@@ -249,9 +243,6 @@ public final class ShadockDockScreen extends Screen {
 		}
 	}
 
-	// ---- input -----------------------------------------------------------------------------------
-
-	/** Plays the slide-out animation (if enabled), then closes. Input is ignored meanwhile. */
 	@Override
 	public void onClose() {
 		if (closingAt >= 0) {
@@ -345,7 +336,6 @@ public final class ShadockDockScreen extends Screen {
 		return super.keyPressed(event);
 	}
 
-	/** Arrow keys move a cursor, Shift+arrows move the pack, Enter applies, 1–9 apply directly. */
 	private boolean handleListKey(KeyEvent event) {
 		String active = controller.activePackName().orElse(null);
 		if (event.isUp() || event.isDown()) {

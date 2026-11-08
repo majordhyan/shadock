@@ -4,17 +4,16 @@ import dev.shadock.shadock.Shadock;
 import dev.shadock.shadock.iris.impl.Iris_1_11_7_26_3_Compat;
 import net.fabricmc.loader.api.FabricLoader;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Picks the adapter for the installed Iris version. Unknown versions get a disabled adapter:
- * Shadock never guesses at Iris internals it has not been tested against.
- */
+// Unknown Iris versions get a disabled adapter. Guessing at untested internals is how you crash
+// someone's world mid-compile.
 public final class IrisCompatFactory {
-	/** Versions this adapter was built and tested against (Iris reports {@code 1.11.7+mc26.3}). */
+	// Iris reports itself as 1.11.7+mc26.3 at runtime. The "+26.3-fabric" Modrinth name never shows up here.
 	private static final String SUPPORTED_PREFIX = "1.11.7+";
 
 	private IrisCompatFactory() {
@@ -41,7 +40,6 @@ public final class IrisCompatFactory {
 		}
 	}
 
-	/** Adapter used when Iris cannot be driven. Every switching call fails safely. */
 	private record Unavailable(String reasonKey) implements IrisCompat {
 		@Override
 		public boolean isAvailable() {
@@ -58,8 +56,8 @@ public final class IrisCompatFactory {
 			Path dir = FabricLoader.getInstance().getGameDir().resolve("shaderpacks");
 			try {
 				Files.createDirectories(dir);
-			} catch (Exception ignored) {
-				// Reported later by the scanner.
+			} catch (IOException ignored) {
+				// the scanner hits the same problem a moment later and reports it properly
 			}
 			return dir;
 		}

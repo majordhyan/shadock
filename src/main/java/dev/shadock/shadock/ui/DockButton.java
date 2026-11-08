@@ -1,5 +1,7 @@
 package dev.shadock.shadock.ui;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.components.Tooltip;
@@ -12,10 +14,7 @@ import net.minecraft.util.ARGB;
 import net.minecraft.util.Util;
 import org.jspecify.annotations.Nullable;
 
-/**
- * A button drawn with Shadock's 32x stone textures. Shows an icon or a text label, has a short
- * "pushed in" state after a click (vanilla buttons have none), and dims its icon when disabled.
- */
+// Vanilla buttons have no pressed state. This one shows the sunk texture for PRESS_MS after a click.
 public final class DockButton extends AbstractButton {
 	private static final long PRESS_MS = 140;
 
@@ -31,7 +30,6 @@ public final class DockButton extends AbstractButton {
 		this.action = action;
 	}
 
-	/** Square icon button; the tooltip key is {@code messageKey + ".tooltip"}. */
 	public static DockButton icon(String messageKey, Identifier icon, int size, int iconSize, Runnable action) {
 		DockButton button = new DockButton(size, size, Component.translatable(messageKey), icon, iconSize, action);
 		button.setTooltip(Tooltip.create(Component.translatable(messageKey + ".tooltip")));
@@ -67,7 +65,7 @@ public final class DockButton extends AbstractButton {
 			int iy = getY() + (getHeight() - iconSize) / 2 + sink;
 			graphics.blitSprite(RenderPipelines.GUI_TEXTURED, icon, ix, iy, iconSize, iconSize, ARGB.white(active ? alpha : alpha * 0.4f));
 		} else {
-			var font = net.minecraft.client.Minecraft.getInstance().font;
+			Font font = Minecraft.getInstance().font;
 			int color = active ? DockColors.WHITE : DockColors.GRAY;
 			graphics.centeredText(font, getMessage(), getX() + getWidth() / 2, getY() + (getHeight() - 8) / 2 + sink, color);
 		}

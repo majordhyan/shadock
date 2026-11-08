@@ -18,10 +18,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- * Caches the pack list. Scans run on a background thread; the dock reads the latest snapshot.
- * A rescan happens only on first open, after an import, on request, or when the folder changes.
- */
 public final class ShaderPackScanner {
 	public enum State { NOT_SCANNED, SCANNING, READY, FAILED }
 
@@ -37,10 +33,8 @@ public final class ShaderPackScanner {
 
 	private volatile List<ShaderPack> packs = List.of();
 	private volatile State state = State.NOT_SCANNED;
-	/** Increments each time a scan finishes, so the UI knows when to rebuild its rows. */
 	private volatile int generation;
 	private boolean watcherStarted;
-	/** True while the folder watcher thread is alive and registered. */
 	private volatile boolean watching;
 
 	public ShaderPackScanner(IrisCompat iris) {
@@ -59,10 +53,7 @@ public final class ShaderPackScanner {
 		return generation;
 	}
 
-	/**
-	 * Called when the dock opens. With a working folder watcher this only scans if something changed;
-	 * without one (unsupported file system, or the folder was deleted) it rescans so the list is never stale.
-	 */
+	// no watcher (folder deleted, odd filesystem) means we can't trust the cache, so rescan on every open
 	public void onDockOpened() {
 		if (!watching) {
 			dirty.set(true);
@@ -70,14 +61,12 @@ public final class ShaderPackScanner {
 		refreshIfDirty();
 	}
 
-	/** Scans if the cache is stale. Cheap to call every tick. */
 	public void refreshIfDirty() {
 		if (dirty.get()) {
 			requestScan();
 		}
 	}
 
-	/** Forces a rescan (after an import or a manual refresh). */
 	public void requestScan() {
 		startWatcher();
 		dirty.set(false);
@@ -117,7 +106,6 @@ public final class ShaderPackScanner {
 		}
 	}
 
-	/** Watches the folder and marks the cache dirty on changes. Falls back silently if unsupported. */
 	private synchronized void startWatcher() {
 		if (watcherStarted) {
 			return;
@@ -171,10 +159,8 @@ public final class ShaderPackScanner {
 		}
 	}
 
-	/**
-	 * Iris writes {@code <pack>.txt} option files on every load, and imports use temp files.
-	 * Neither changes the pack list, so they must not trigger a rescan of every ZIP.
-	 */
+	// Iris rewrites <pack>.txt on every load and imports go through temp files. Neither changes the
+	// list, and without this filter every shader switch triggered a full rescan.
 	static boolean isRelevant(String fileName) {
 		String lower = fileName.toLowerCase(java.util.Locale.ROOT);
 		return !lower.endsWith(".txt") && !lower.endsWith(".shadock-tmp") && !lower.endsWith(".tmp");

@@ -1,18 +1,14 @@
 package dev.shadock.shadock.ui;
 
-/** Small, restrained motion helpers. No overshoot or bounce. */
 public final class DockAnimations {
-	/** Dock slide/fade-in duration. */
 	public static final float OPEN_MS = 120f;
-	/** Time constant for row movement; rows settle in roughly 100 ms. */
+	// time constants, not durations: rows settle in roughly 4x ROW_TAU_MS
 	public static final float ROW_TAU_MS = 28f;
-	/** Time constant for smooth scrolling. */
 	public static final float SCROLL_TAU_MS = 40f;
 
 	private DockAnimations() {
 	}
 
-	/** Dock slide-out duration; short so closing still feels immediate. */
 	public static final float CLOSE_MS = 90f;
 
 	public static float easeInCubic(float t) {
@@ -26,7 +22,6 @@ public final class DockAnimations {
 		return 1f - inv * inv * inv;
 	}
 
-	/** Frame-rate independent exponential approach towards {@code target}. */
 	public static float approach(float current, float target, float dtMs, float tauMs) {
 		if (Math.abs(target - current) < 0.05f) {
 			return target;

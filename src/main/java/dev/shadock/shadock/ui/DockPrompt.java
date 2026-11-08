@@ -4,7 +4,6 @@ import net.minecraft.network.chat.Component;
 
 import java.util.List;
 
-/** A small inline question shown inside the dock (e.g. Replace / Keep Both / Cancel). */
 public record DockPrompt(Component message, List<Choice> choices, Runnable onEscape) {
 	public record Choice(Component label, boolean primary, Runnable action) {
 	}

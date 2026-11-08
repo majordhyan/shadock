@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-/** The tiny built-in settings screen, opened from the dock's gear button. */
 public final class ShadockSettingsScreen extends Screen {
 	private static final int BUTTON_WIDTH = 210;
 	private static final int BUTTON_HEIGHT = 20;

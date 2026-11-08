@@ -14,19 +14,13 @@ import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
-/**
- * Opens the operating system's file picker through SDL3, which Minecraft 26.3 already uses for its window.
- * The dialog is asynchronous, so the game keeps running while it is open, and SDL handles the
- * platform rules (including macOS's main-thread requirement) itself.
- */
+// SDL3 dialog instead of TinyFD: 26.3 runs its window on SDL, the dialog is async so the game keeps
+// rendering, and SDL deals with macOS wanting dialogs on the main thread.
 public final class NativeFilePicker {
 	private NativeFilePicker() {
 	}
 
-	/**
-	 * @param onResult receives the chosen file, or {@code null} if the player cancelled. Runs on the render thread.
-	 * @param onError  receives a message if the dialog could not be shown. Runs on the render thread.
-	 */
+	// both callbacks land on the render thread
 	public static void openZip(Consumer<@Nullable Path> onResult, Consumer<String> onError) {
 		Minecraft minecraft = Minecraft.getInstance();
 
@@ -72,6 +66,7 @@ public final class NativeFilePicker {
 		self.set(callback);
 
 		try {
+			// TODO: remember the last folder a pack was imported from instead of always starting at the OS default
 			SDLDialog.SDL_ShowOpenFileDialog(callback, 0L, minecraft.getWindow().handle(), filters, (CharSequence) null, false);
 		} catch (Throwable t) {
 			Shadock.LOGGER.error("Could not open the file picker", t);

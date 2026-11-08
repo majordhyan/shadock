@@ -16,16 +16,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Adapter for Iris {@code 1.11.7+mc26.3}. It mirrors what Iris's own shader pack screen does
- * ({@code ShaderPackScreen.applyChanges}): set the pack name, enable shaders, save iris.properties, reload.
- */
+// Same steps as Iris's own ShaderPackScreen.applyChanges: set name, enable, save iris.properties, reload.
+// The save has to come first, reload() re-reads the properties file from disk.
 public final class Iris_1_11_7_26_3_Compat implements IrisCompat {
 	private static final int MAX_ERROR_LENGTH = 160;
 
 	private @Nullable String lastError;
 
-	/** Touches every Iris member this adapter uses, so a mismatch fails at startup instead of on click. */
+	// touch everything we use so a changed Iris fails at startup instead of on the first click
 	public void selfTest() {
 		Iris.getShaderpacksDirectory();
 		Iris.getCurrentPackName();
@@ -59,6 +57,8 @@ public final class Iris_1_11_7_26_3_Compat implements IrisCompat {
 		Path dir = getShaderpacksDirectory();
 		List<IrisPackInfo> packs = new ArrayList<>();
 		try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
+			// TODO: this reopens every zip on every rescan to validate it. fine for 20 packs, noticeably slow
+			//  with a few hundred. cache validity by size + mtime.
 			for (Path path : stream) {
 				if (!Iris.isValidToShowPack(path)) {
 					continue;
@@ -114,6 +114,8 @@ public final class Iris_1_11_7_26_3_Compat implements IrisCompat {
 			return false;
 		}
 
+		// TODO: on a compile failure in-world Iris also posts its own chat message, so the player sees the
+		//  error twice. no clean way to suppress theirs without a second mixin.
 		Exception captured = IrisErrorCapture.take();
 		boolean loaded = Iris.getCurrentPack().isPresent()
 			&& packName.equals(Iris.getCurrentPackName())
@@ -149,7 +151,6 @@ public final class Iris_1_11_7_26_3_Compat implements IrisCompat {
 		return Optional.ofNullable(lastError);
 	}
 
-	/** First line of the exception message, shortened to fit a status line. */
 	private static String describe(Throwable e) {
 		String message = e.getMessage();
 		if (message == null || message.isBlank()) {

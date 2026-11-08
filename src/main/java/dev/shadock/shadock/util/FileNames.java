@@ -13,15 +13,10 @@ public final class FileNames {
 		return fileName.toLowerCase(Locale.ROOT).endsWith(".zip");
 	}
 
-	/** {@code "BSL_v8.zip"} → {@code "BSL_v8"}; folder names are returned unchanged. */
 	public static String displayName(String fileName) {
 		return isZip(fileName) ? fileName.substring(0, fileName.length() - 4) : fileName;
 	}
 
-	/**
-	 * First free name in the pattern {@code Name.zip}, {@code Name (2).zip}, {@code Name (3).zip}, ...
-	 * Returns {@code fileName} itself when it is not taken.
-	 */
 	public static String firstFreeName(String fileName, Predicate<String> taken) {
 		if (!taken.test(fileName)) {
 			return fileName;

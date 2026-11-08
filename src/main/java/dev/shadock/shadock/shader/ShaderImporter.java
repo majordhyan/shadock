@@ -20,10 +20,6 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 
-/**
- * Validates and copies shader ZIPs into the shaderpacks folder off the main thread.
- * Results are delivered on {@code mainThread}.
- */
 public final class ShaderImporter {
 	public enum Validation { VALID, NOT_ZIP, NO_SHADERS, NESTED_ZIP, CORRUPT, UNREADABLE }
 
@@ -47,10 +43,6 @@ public final class ShaderImporter {
 		return busy.get();
 	}
 
-	/**
-	 * Checks the file and, if valid and its name is free, copies it.
-	 * Reports {@link ShaderImportResult.Status#DUPLICATE} without copying when the name is taken.
-	 */
 	public void importFile(Path source, Consumer<ShaderImportResult> callback) {
 		String name = source.getFileName().toString();
 		run(callback, name, () -> {
@@ -71,7 +63,6 @@ public final class ShaderImporter {
 		});
 	}
 
-	/** Copies under the next free {@code Name (n).zip} name. */
 	public void importKeepingBoth(Path source, Consumer<ShaderImportResult> callback) {
 		String original = source.getFileName().toString();
 		run(callback, original, () -> {
@@ -82,7 +73,7 @@ public final class ShaderImporter {
 		});
 	}
 
-	/** Overwrites the existing pack. The caller must have confirmed and released the file first. */
+	// caller has to make Iris release the file first, see ImportFlow.replace
 	public void importReplacing(Path source, Consumer<ShaderImportResult> callback) {
 		String name = source.getFileName().toString();
 		run(callback, name, () -> {
@@ -105,20 +96,20 @@ public final class ShaderImporter {
 			return;
 		}
 		io.execute(() -> {
-			ShaderImportResult result;
+			ShaderImportResult outcome;
 			try {
-				result = job.call();
+				outcome = job.call();
 			} catch (IOException | RuntimeException e) {
 				Shadock.LOGGER.error("Import of {} failed", name, e);
-				result = new ShaderImportResult(ShaderImportResult.Status.FAILED, name, e.getMessage());
+				outcome = new ShaderImportResult(ShaderImportResult.Status.FAILED, name, e.getMessage());
 			}
-			ShaderImportResult finalResult = result;
+			ShaderImportResult delivered = outcome;
 			busy.set(false);
-			mainThread.execute(() -> callback.accept(finalResult));
+			mainThread.execute(() -> callback.accept(delivered));
 		});
 	}
 
-	/** Copies via a temp file so a half-written ZIP is never visible to Iris. */
+	// temp file + move, so Iris never picks up half a zip if the copy dies
 	private static void copy(Path source, Path target) throws IOException {
 		Files.createDirectories(target.getParent());
 		Path tmp = target.resolveSibling(target.getFileName() + TEMP_SUFFIX);
@@ -134,10 +125,8 @@ public final class ShaderImporter {
 		}
 	}
 
-	/**
-	 * Same rule Iris uses: the archive must contain a directory named {@code shaders}, at the root
-	 * or inside one top-level folder. ZIPs inside ZIPs are not unpacked.
-	 */
+	// Mirrors Iris.isValidShaderpack: some directory in the zip has to be called "shaders".
+	// Zips inside zips are rejected, people download a pack-of-packs and wonder why nothing shows up.
 	public static Validation validate(Path file) {
 		if (!Files.isRegularFile(file) || !FileNames.isZip(file.getFileName().toString())) {
 			return Validation.NOT_ZIP;
