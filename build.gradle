@@ -62,7 +62,7 @@ tasks.matching { it.name == 'runClientGameTest' }.configureEach {
 }
 
 processResources {
-	def props = [version: project.version, iris_version: project.iris_version, loader_version: project.loader_version]
+	def props = [version: project.version, loader_version: project.loader_version]
 	inputs.properties props
 	filesMatching('fabric.mod.json') {
 		expand props
