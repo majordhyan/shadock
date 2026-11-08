@@ -1,0 +1,25 @@
+name: Crash
+description: The game crashed and Shadock is in the crash report
+labels: [crash]
+body:
+  - type: input
+    id: versions
+    attributes:
+      label: Minecraft / Shadock / Iris versions
+      placeholder: "26.3 / 1.0.0+mc26.3 / 1.11.7"
+    validations:
+      required: true
+  - type: input
+    id: report
+    attributes:
+      label: Crash report
+      description: The file from crash-reports/, uploaded to https://mclo.gs
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: What were you doing
+      description: Switching packs, importing, dragging, just opening the dock...
+    validations:
+      required: true

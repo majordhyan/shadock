@@ -1,0 +1,53 @@
+name: Bug report
+description: Something in the dock doesn't work the way it should
+labels: [bug]
+body:
+  - type: input
+    id: mc
+    attributes:
+      label: Minecraft version
+      placeholder: "26.3"
+    validations:
+      required: true
+  - type: input
+    id: shadock
+    attributes:
+      label: Shadock version
+      placeholder: "1.0.0+mc26.3"
+    validations:
+      required: true
+  - type: input
+    id: iris
+    attributes:
+      label: Iris and Sodium versions
+      placeholder: "Iris 1.11.7, Sodium 0.9.2"
+    validations:
+      required: true
+  - type: input
+    id: loader
+    attributes:
+      label: Fabric Loader version
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you got instead. Shader pack name if it's pack-specific.
+    validations:
+      required: true
+  - type: input
+    id: log
+    attributes:
+      label: Log
+      description: Upload logs/latest.log to https://mclo.gs and paste the link
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I attached latest.log above
+          required: true
+        - label: It still happens with only Fabric API, Sodium, Iris and Shadock installed

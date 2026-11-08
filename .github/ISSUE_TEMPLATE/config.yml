@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Download on CurseForge
+    url: https://www.curseforge.com/minecraft/mc-mods/shadock
+    about: Releases live there
+  - name: Iris problems
+    url: https://github.com/IrisShaders/Iris/issues
+    about: A shader pack looks wrong or won't compile even when picked through Iris's own menu
+  - name: Fabric Discord
+    url: https://discord.gg/v6v4pMv
+    about: General Fabric help
