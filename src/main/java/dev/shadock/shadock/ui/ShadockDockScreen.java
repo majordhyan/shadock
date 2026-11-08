@@ -16,11 +16,9 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Util;
 import org.jspecify.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -29,9 +27,6 @@ import java.util.concurrent.CompletableFuture;
  * (popup frame, stone buttons, selection list, separators, scrollbar) so it looks like part of the game.
  */
 public final class ShadockDockScreen extends Screen {
-	private static final int PROMPT_MIN_ROWS = 5;
-	private static final int PROMPT_BUTTON_HEIGHT = 16;
-
 	private final DockController controller;
 	private ShaderListWidget list;
 	private DockStatusRenderer statusRenderer;
@@ -45,8 +40,7 @@ public final class ShadockDockScreen extends Screen {
 	private DockButton keyButton;
 	private DockButton settingsButton;
 
-	private @Nullable DockPrompt shownPrompt;
-	private final List<DockButton> promptButtons = new ArrayList<>();
+	private final PromptOverlay promptOverlay = new PromptOverlay(this::addRenderableWidget, this::removeWidget);
 
 	/** Set while the slide-out animation plays; the screen closes for real when it ends. */
 	private long closingAt = -1;
@@ -93,8 +87,7 @@ public final class ShadockDockScreen extends Screen {
 		settingsButton = addRenderableWidget(iconButton("shadock.button.settings",
 			DockSprites.SETTINGS, () -> minecraft.gui.setScreen(new ShadockSettingsScreen(this))));
 
-		shownPrompt = null;
-		promptButtons.clear();
+		promptOverlay.reset();
 	}
 
 	private DockButton iconButton(String key, Identifier sprite, Runnable action) {
@@ -132,8 +125,8 @@ public final class ShadockDockScreen extends Screen {
 		List<ShaderPack> rows = controller.rows();
 		list.sync(rows);
 		DockPrompt prompt = controller.prompt();
-		layout = DockLayoutManager.compute(width, height, rows.size(), prompt != null ? PROMPT_MIN_ROWS : 0);
-		syncPromptButtons(prompt);
+		layout = DockLayoutManager.compute(width, height, rows.size(), prompt != null ? PromptOverlay.MIN_ROWS : 0);
+		promptOverlay.sync(prompt);
 		positionWidgets(prompt != null);
 
 		float slide = 0f;
@@ -162,7 +155,7 @@ public final class ShadockDockScreen extends Screen {
 		graphics.blit(RenderPipelines.GUI_TEXTURED, DockSprites.HEADER_SEPARATOR, l.x(), l.y() - 2, 0f, 0f, l.width(), 2, 32, 2);
 		String active = controller.activePackName().orElse(null);
 		if (prompt != null) {
-			drawPrompt(graphics, prompt);
+			promptOverlay.render(graphics, font, l, prompt);
 		} else if (rows.isEmpty()) {
 			drawEmptyState(graphics);
 		} else {
@@ -232,48 +225,6 @@ public final class ShadockDockScreen extends Screen {
 		graphics.centeredText(font, Component.translatable(key), cx, l.y() + l.height() / 2 - 9, DockColors.WHITE);
 		if (controller.scanState() == ShaderPackScanner.State.READY) {
 			graphics.centeredText(font, Component.translatable("shadock.dock.import_hint"), cx, l.y() + l.height() / 2 + 2, DockColors.GRAY);
-		}
-	}
-
-	// ---- inline prompt (Replace / Keep Both / Cancel) -----------------------------------------------
-
-	private void syncPromptButtons(@Nullable DockPrompt prompt) {
-		if (prompt == shownPrompt) {
-			return;
-		}
-		promptButtons.forEach(this::removeWidget);
-		promptButtons.clear();
-		shownPrompt = prompt;
-		if (prompt == null) {
-			return;
-		}
-		for (DockPrompt.Choice choice : prompt.choices()) {
-			promptButtons.add(addRenderableWidget(DockButton.text(choice.label(), 40, PROMPT_BUTTON_HEIGHT, choice.action())));
-		}
-	}
-
-	private void drawPrompt(GuiGraphicsExtractor graphics, DockPrompt prompt) {
-		DockLayoutManager.Rect l = layout.list();
-		graphics.blit(RenderPipelines.GUI_TEXTURED, DockSprites.LIST_BACKGROUND, l.x(), l.y(), 0f, 0f, l.width(), l.height(), 32, 32);
-		graphics.fill(l.x(), l.y(), l.right(), l.bottom(), 0x80000000);
-
-		int buttonsY = l.bottom() - PROMPT_BUTTON_HEIGHT - 3;
-		List<FormattedCharSequence> lines = font.split(prompt.message(), l.width() - 8);
-		int maxLines = Math.max(1, (buttonsY - l.y() - 4) / 10);
-		int y = l.y() + 4;
-		for (int i = 0; i < Math.min(lines.size(), maxLines); i++) {
-			graphics.text(font, lines.get(i), l.x() + 4, y, DockColors.WHITE, true);
-			y += 10;
-		}
-
-		int count = promptButtons.size();
-		int gap = 2;
-		int w = (l.width() - 6 - gap * (count - 1)) / Math.max(1, count);
-		for (int i = 0; i < count; i++) {
-			DockButton b = promptButtons.get(i);
-			b.setWidth(w);
-			b.setX(l.x() + 3 + i * (w + gap));
-			b.setY(buttonsY);
 		}
 	}
 
