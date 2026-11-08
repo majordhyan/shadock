@@ -14,29 +14,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-/**
- * Scrollable pack list drawn like a vanilla selection list, with click-to-activate,
- * drag-to-reorder, a vanilla scrollbar and keyboard navigation.
- * Only visible rows are drawn, and entries are rebuilt only when the controller's row list changes.
- */
+// Not a vanilla AbstractSelectionList on purpose: that one can't animate rows aside during a drag,
+// and the drag is the whole point. Draws like one though.
 final class ShaderListWidget {
-	/** Pixels the mouse must move before a press becomes a drag (spec: 4–6). */
+	// a press has to travel this far before it counts as a drag, so shaky clicks still apply the pack
 	static final double DRAG_THRESHOLD = 5.0;
 	private static final int ROW = DockLayoutManager.ROW_HEIGHT;
-	private static final int SCROLLBAR = DockLayoutManager.SCROLLBAR_WIDTH;
 	private static final float AUTO_SCROLL_SPEED = 0.2f;
 	private static final Component INVALID_TOOLTIP = Component.translatable("shadock.status.invalid_pack");
 	private static final Component LOCKED_TOOLTIP = Component.translatable("shadock.status.drag_locked");
 
 	private final DockController controller;
 	private final Font font;
+	private final ListScroll scroll = new ListScroll();
 
 	private List<ShaderPack> source = List.of();
 	private final List<ShaderListEntry> entries = new ArrayList<>();
-
-	private float scroll;
-	private float targetScroll;
-	private boolean draggingScrollbar;
 
 	private int pressedIndex = -1;
 	private double pressX;
@@ -48,8 +41,7 @@ final class ShaderListWidget {
 	private double lastMouseY;
 	private boolean lockHintShown;
 
-	/** Keyboard cursor (arrow keys), or -1 when the mouse is in charge. */
-	private int cursor = -1;
+	private int cursor = -1; // arrow-key selection, -1 while the mouse is driving
 
 	private DockLayoutManager.Rect area = new DockLayoutManager.Rect(0, 0, 0, 0);
 
@@ -59,29 +51,29 @@ final class ShaderListWidget {
 	}
 
 	boolean isDragging() {
-		return dragging || draggingScrollbar;
+		return dragging || scroll.isThumbHeld();
 	}
 
 	boolean isPressing() {
-		return pressedIndex >= 0 || draggingScrollbar;
+		return pressedIndex >= 0 || scroll.isThumbHeld();
 	}
 
-	/** Re-syncs with the controller's rows, keeping each pack's on-screen position for smooth motion. */
 	void sync(List<ShaderPack> rows) {
 		if (rows == source) {
 			return;
 		}
+		// carry each pack's current y over so a reorder or rescan animates instead of jumping
 		String cursorName = cursor >= 0 && cursor < entries.size() ? entries.get(cursor).pack.fileName() : null;
-		Map<String, Float> previous = new HashMap<>();
+		Map<String, Float> previousY = new HashMap<>();
 		for (ShaderListEntry entry : entries) {
-			previous.put(entry.pack.fileName(), entry.animY);
+			previousY.put(entry.pack.fileName(), entry.animY);
 		}
 		source = rows;
 		entries.clear();
 		cursor = -1;
 		for (int i = 0; i < rows.size(); i++) {
 			ShaderPack pack = rows.get(i);
-			Float y = previous.get(pack.fileName());
+			Float y = previousY.get(pack.fileName());
 			entries.add(new ShaderListEntry(pack, y != null ? y : i * ROW));
 			if (pack.fileName().equals(cursorName)) {
 				cursor = i;
@@ -91,15 +83,14 @@ final class ShaderListWidget {
 			cancelPress();
 		}
 		pressedIndex = -1;
-		clampScroll();
+		scroll.layout(area, entries.size() * ROW);
 	}
-
-	// ---- rendering -------------------------------------------------------------------------------
 
 	void render(GuiGraphicsExtractor graphics, DockLayoutManager.Rect area, int mouseX, int mouseY,
 				float dtMs, @Nullable String activeFile, boolean inputBlocked) {
 		this.area = area;
-		updateScroll(dtMs);
+		scroll.layout(area, entries.size() * ROW);
+		scroll.tick(dtMs);
 		if (dragging) {
 			autoScroll(dtMs);
 			updateDropIndex(lastMouseY);
@@ -109,33 +100,35 @@ final class ShaderListWidget {
 			entry.animY = DockAnimations.approach(entry.animY, targetSlot(i) * ROW, dtMs, DockAnimations.ROW_TAU_MS);
 		}
 
-		// Vanilla in-world list background.
+		float offset = scroll.offset();
 		graphics.blit(RenderPipelines.GUI_TEXTURED, DockSprites.LIST_BACKGROUND, area.x(), area.y(),
-			0f, scroll, area.width(), area.height(), 32, 32);
+			0f, offset, area.width(), area.height(), 32, 32);
 
 		int rowWidth = rowWidth();
 		graphics.enableScissor(area.x(), area.y(), area.right(), area.bottom());
 
 		if (dragging) {
-			int gapY = Math.round(area.y() - scroll + dropIndex * ROW);
+			int gapY = Math.round(area.y() - offset + dropIndex * ROW);
 			graphics.fill(area.x(), gapY, area.x() + rowWidth, gapY + ROW, DockColors.DROP_SLOT);
 			graphics.fill(area.x(), gapY, area.x() + rowWidth, gapY + 1, DockColors.WHITE);
 		}
 
 		boolean mouseInList = !dragging && !inputBlocked && area.contains(mouseX, mouseY) && mouseX < area.x() + rowWidth;
 		int hovered = mouseInList ? rowAt(mouseY) : -1;
-		int first = Math.max(0, (int) Math.floor(scroll / ROW) - 1);
-		int last = Math.min(entries.size() - 1, (int) Math.ceil((scroll + area.height()) / ROW) + 1);
+		// only draw what's on screen, people do keep 100+ packs in there
+		int first = Math.max(0, (int) Math.floor(offset / ROW) - 1);
+		int last = Math.min(entries.size() - 1, (int) Math.ceil((offset + area.height()) / ROW) + 1);
 		for (int i = first; i <= last; i++) {
 			if (dragging && i == dragIndex) {
 				continue;
 			}
 			ShaderListEntry entry = entries.get(i);
-			int y = Math.round(area.y() - scroll + entry.animY);
+			int y = Math.round(area.y() - offset + entry.animY);
 			drawRow(graphics, entry, area.x(), y, rowWidth, entry.pack.fileName().equals(activeFile), i == hovered, i == cursor);
 		}
 		graphics.disableScissor();
 
+		// the dragged row goes last and outside the scissor so it can hang half off the list edge
 		if (dragging && dragIndex >= 0 && dragIndex < entries.size()) {
 			int y = (int) Math.round(Math.max(area.y() - ROW / 2.0, Math.min(area.bottom() - ROW / 2.0, lastMouseY - grabOffset)));
 			ShaderListEntry entry = entries.get(dragIndex);
@@ -144,7 +137,7 @@ final class ShaderListWidget {
 			drawRowContent(graphics, entry, area.x(), y, rowWidth, entry.pack.fileName().equals(activeFile), true);
 		}
 
-		drawScrollbar(graphics);
+		scroll.draw(graphics);
 
 		if (hovered >= 0) {
 			tooltipFor(graphics, entries.get(hovered), mouseX, mouseY);
@@ -163,7 +156,6 @@ final class ShaderListWidget {
 		drawRowContent(graphics, entry, x, y, width, active, hovered || cursorHere);
 	}
 
-	/** The vanilla selection box: a 1 px outline around a black fill. */
 	private static void drawSelection(GuiGraphicsExtractor graphics, int x, int y, int width, int outline) {
 		graphics.fill(x, y, x + width, y + ROW, outline);
 		graphics.fill(x + 1, y + 1, x + width - 1, y + ROW - 1, DockColors.SELECTION_FILL);
@@ -176,7 +168,6 @@ final class ShaderListWidget {
 		graphics.blitSprite(RenderPipelines.GUI_TEXTURED,
 			pack.type() == ShaderPack.Type.ZIP ? DockSprites.ROW_ZIP : DockSprites.ROW_FOLDER, x + 2, y + 2, 8, 8);
 
-		// Right-hand marker: invalid warning, active checkmark, or a drag handle / lock on hover.
 		int markerWidth = 0;
 		if (invalid) {
 			graphics.blitSprite(RenderPipelines.GUI_TEXTURED, DockSprites.ROW_INVALID, x + width - 10, y + 2, 8, 8);
@@ -190,22 +181,9 @@ final class ShaderListWidget {
 			markerWidth = 11;
 		}
 
-		int nameX = x + 13;
 		int nameWidth = width - 13 - Math.max(markerWidth, 12) - 1;
-		int color = invalid ? DockColors.DARK_GRAY : active ? DockColors.WHITE : emphasized ? DockColors.WHITE : DockColors.GRAY;
-		graphics.text(font, entry.name(font, nameWidth), nameX, y + 2, color, true);
-	}
-
-	private void drawScrollbar(GuiGraphicsExtractor graphics) {
-		float max = maxScroll();
-		if (max <= 0) {
-			return;
-		}
-		int x = area.right() - SCROLLBAR;
-		int thumbHeight = thumbHeight();
-		int thumbY = area.y() + Math.round((area.height() - thumbHeight) * (scroll / max));
-		graphics.blitSprite(RenderPipelines.GUI_TEXTURED, DockSprites.SCROLLER_BACKGROUND, x, area.y(), SCROLLBAR, area.height());
-		graphics.blitSprite(RenderPipelines.GUI_TEXTURED, DockSprites.SCROLLER, x, thumbY, SCROLLBAR, thumbHeight);
+		int color = invalid ? DockColors.DARK_GRAY : active || emphasized ? DockColors.WHITE : DockColors.GRAY;
+		graphics.text(font, entry.name(font, nameWidth), x + 13, y + 2, color, true);
 	}
 
 	private void tooltipFor(GuiGraphicsExtractor graphics, ShaderListEntry entry, int mouseX, int mouseY) {
@@ -218,18 +196,11 @@ final class ShaderListWidget {
 		}
 	}
 
-	// ---- geometry --------------------------------------------------------------------------------
-
 	private int rowWidth() {
-		return maxScroll() > 0 ? area.width() - SCROLLBAR - 1 : area.width();
+		return scroll.canScroll() ? area.width() - ListScroll.BAR_WIDTH - 1 : area.width();
 	}
 
-	private int thumbHeight() {
-		int content = Math.max(1, entries.size() * ROW);
-		return Math.max(8, Math.min(area.height(), area.height() * area.height() / content));
-	}
-
-	/** Where row {@code i} should be while a drag is in progress (others make room at the drop slot). */
+	// where row i sits while a drag is going on: everything between the old and new slot shifts by one
 	private int targetSlot(int i) {
 		if (!dragging || i == dragIndex) {
 			return i;
@@ -244,64 +215,29 @@ final class ShaderListWidget {
 	}
 
 	private int rowAt(double mouseY) {
-		int index = (int) Math.floor((mouseY - area.y() + scroll) / ROW);
+		int index = (int) Math.floor((mouseY - area.y() + scroll.offset()) / ROW);
 		return index >= 0 && index < entries.size() ? index : -1;
-	}
-
-	private float maxScroll() {
-		return Math.max(0, entries.size() * ROW - area.height());
-	}
-
-	private void clampScroll() {
-		targetScroll = Math.max(0, Math.min(maxScroll(), targetScroll));
-		scroll = Math.max(0, Math.min(maxScroll(), scroll));
-	}
-
-	private void updateScroll(float dtMs) {
-		clampScroll();
-		scroll = draggingScrollbar ? targetScroll : DockAnimations.approach(scroll, targetScroll, dtMs, DockAnimations.SCROLL_TAU_MS);
 	}
 
 	private void autoScroll(float dtMs) {
 		if (lastMouseY < area.y() + ROW) {
-			targetScroll -= AUTO_SCROLL_SPEED * dtMs;
+			scroll.nudge(-AUTO_SCROLL_SPEED * dtMs);
 		} else if (lastMouseY > area.bottom() - ROW) {
-			targetScroll += AUTO_SCROLL_SPEED * dtMs;
+			scroll.nudge(AUTO_SCROLL_SPEED * dtMs);
 		}
-		clampScroll();
 	}
 
 	private void updateDropIndex(double mouseY) {
-		double rowTop = mouseY - grabOffset - area.y() + scroll;
+		double rowTop = mouseY - grabOffset - area.y() + scroll.offset();
 		dropIndex = (int) Math.max(0, Math.min(entries.size() - 1, Math.round(rowTop / ROW)));
 	}
-
-	private void ensureVisible(int index) {
-		float top = index * ROW;
-		if (top < targetScroll) {
-			targetScroll = top;
-		} else if (top + ROW > targetScroll + area.height()) {
-			targetScroll = top + ROW - area.height();
-		}
-		clampScroll();
-	}
-
-	private void scrollbarTo(double mouseY) {
-		float max = maxScroll();
-		float travel = Math.max(1, area.height() - thumbHeight());
-		targetScroll = (float) ((mouseY - area.y() - thumbHeight() / 2.0) / travel * max);
-		clampScroll();
-	}
-
-	// ---- mouse -----------------------------------------------------------------------------------
 
 	boolean mouseClicked(double mouseX, double mouseY, int button) {
 		if (button != InputConstants.MOUSE_BUTTON_LEFT || !area.contains(mouseX, mouseY)) {
 			return false;
 		}
-		if (maxScroll() > 0 && mouseX >= area.right() - SCROLLBAR) {
-			draggingScrollbar = true;
-			scrollbarTo(mouseY);
+		if (scroll.isOverBar(mouseX)) {
+			scroll.grabThumb(mouseY);
 			return true;
 		}
 		cursor = -1;
@@ -313,7 +249,7 @@ final class ShaderListWidget {
 		pressX = mouseX;
 		pressY = mouseY;
 		lastMouseY = mouseY;
-		grabOffset = mouseY - (area.y() - scroll + index * ROW);
+		grabOffset = mouseY - (area.y() - scroll.offset() + index * ROW);
 		lockHintShown = false;
 		return true;
 	}
@@ -322,8 +258,8 @@ final class ShaderListWidget {
 		if (button != InputConstants.MOUSE_BUTTON_LEFT) {
 			return false;
 		}
-		if (draggingScrollbar) {
-			scrollbarTo(mouseY);
+		if (scroll.isThumbHeld()) {
+			scroll.moveThumb(mouseY);
 			return true;
 		}
 		if (pressedIndex < 0) {
@@ -351,13 +287,12 @@ final class ShaderListWidget {
 		return true;
 	}
 
-	/** Ends a press: commits a drag, or activates the row if it was a plain click. */
 	boolean mouseReleased(double mouseX, double mouseY, int button, Consumer<ShaderPack> onClick) {
 		if (button != InputConstants.MOUSE_BUTTON_LEFT) {
 			return false;
 		}
-		if (draggingScrollbar) {
-			draggingScrollbar = false;
+		if (scroll.isThumbHeld()) {
+			scroll.releaseThumb();
 			return true;
 		}
 		if (pressedIndex < 0) {
@@ -368,8 +303,8 @@ final class ShaderListWidget {
 
 		if (dragging) {
 			updateDropIndex(mouseY);
-			ShaderListEntry moved = entries.get(dragIndex);
-			moved.animY = (float) (mouseY - grabOffset - area.y() + scroll);
+			// start the dropped row's animation from where it was let go, not its old slot
+			entries.get(dragIndex).animY = (float) (mouseY - grabOffset - area.y() + scroll.offset());
 			int from = dragIndex;
 			int to = dropIndex;
 			dragging = false;
@@ -385,31 +320,27 @@ final class ShaderListWidget {
 		return true;
 	}
 
-	boolean mouseScrolled(double mouseX, double mouseY, double scrollY) {
+	boolean mouseScrolled(double mouseX, double mouseY, double amount) {
 		if (!area.contains(mouseX, mouseY)) {
 			return false;
 		}
-		targetScroll -= (float) (scrollY * ROW * 1.5);
-		clampScroll();
+		scroll.nudge((float) (-amount * ROW * 1.5));
 		return true;
 	}
 
-	/** Drops any press or drag without changing the order (Escape, focus lost, or the list changed). */
 	void cancelPress() {
 		dragging = false;
 		dragIndex = -1;
 		dropIndex = -1;
 		pressedIndex = -1;
-		draggingScrollbar = false;
+		scroll.releaseThumb();
 	}
 
-	// ---- keyboard --------------------------------------------------------------------------------
-
-	/** Moves the keyboard cursor. Starts on the active pack (or the top) the first time. */
 	void moveCursor(int delta, @Nullable String activeFile) {
 		if (entries.isEmpty()) {
 			return;
 		}
+		// first arrow press starts from the active pack, which is where people are looking
 		if (cursor < 0) {
 			cursor = indexOf(activeFile);
 			if (cursor < 0) {
@@ -417,23 +348,23 @@ final class ShaderListWidget {
 			}
 		}
 		cursor = Math.max(0, Math.min(entries.size() - 1, cursor + delta));
-		ensureVisible(cursor);
+		scroll.reveal(cursor * ROW, ROW);
 	}
 
 	@Nullable ShaderPack cursorPack() {
-		return cursor >= 0 && cursor < entries.size() ? entries.get(cursor).pack : null;
+		return packAt(cursor);
 	}
 
 	@Nullable ShaderPack packAt(int index) {
 		return index >= 0 && index < entries.size() ? entries.get(index).pack : null;
 	}
 
-	/** Moves the pack under the keyboard cursor up or down (Shift + arrow). */
 	void moveCursorPack(int delta) {
-		if (cursor < 0 || !controller.canDrag() || controller.isBusy()) {
-			if (!controller.canDrag()) {
-				controller.setStatus(DockStatus.of(DockStatus.Kind.INFO, "shadock.status.drag_locked"));
-			}
+		if (!controller.canDrag()) {
+			controller.setStatus(DockStatus.of(DockStatus.Kind.INFO, "shadock.status.drag_locked"));
+			return;
+		}
+		if (cursor < 0 || controller.isBusy()) {
 			return;
 		}
 		int target = Math.max(0, Math.min(entries.size() - 1, cursor + delta));
@@ -442,7 +373,7 @@ final class ShaderListWidget {
 		}
 		controller.reorder(cursor, target);
 		cursor = target;
-		ensureVisible(cursor);
+		scroll.reveal(cursor * ROW, ROW);
 	}
 
 	private int indexOf(@Nullable String fileName) {
