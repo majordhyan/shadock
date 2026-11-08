@@ -1,6 +1,6 @@
 {
 	"required": true,
-	"package": "dev.shadock.shadock.iris.mixin",
+	"package": "dev.shadock.shadock.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"client": [
 		"IrisErrorCaptureMixin"

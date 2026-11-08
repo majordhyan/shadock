@@ -16,7 +16,7 @@
 		]
 	},
 	"mixins": [
-		"shadock.mixins.json"
+		"mixins.shadock.json"
 	],
 	"depends": {
 		"fabricloader": ">=${loader_version}",

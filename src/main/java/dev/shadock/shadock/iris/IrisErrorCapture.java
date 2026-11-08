@@ -2,7 +2,8 @@ package dev.shadock.shadock.iris;
 
 import org.jspecify.annotations.Nullable;
 
-/** Holds the last exception Iris reported while loading a pack. Written by {@code IrisErrorCaptureMixin}. */
+// Lives outside the mixin on purpose: mixin classes get merged into their target and can't be
+// referenced from normal code, so the adapter reads the captured exception from here.
 public final class IrisErrorCapture {
 	private static volatile @Nullable Exception last;
 
